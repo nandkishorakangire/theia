@@ -24,6 +24,8 @@ import { JSONValue } from '@theia/core/shared/@phosphor/coreutils';
 import debounce = require('@theia/core/shared/lodash.debounce');
 import { PreferenceTreeModel } from '../../preference-tree-model';
 import { PreferencesSearchbarWidget } from '../preference-searchbar-widget';
+import * as markdownit from 'markdown-it';
+import * as DOMPurify from '@theia/core/shared/dompurify';
 
 export const PreferenceNodeRendererFactory = Symbol('PreferenceNodeRendererFactory');
 export type PreferenceNodeRendererFactory = (node: Preference.TreeNode) => PreferenceNodeRenderer;
@@ -205,11 +207,15 @@ export abstract class PreferenceLeafNodeRenderer<ValueType extends JSONValue, In
         wrapper.appendChild(contentWrapper);
 
         const { description, markdownDescription } = this.preferenceNode.preference.data;
-        const descriptionToUse = markdownDescription || description;
-        if (descriptionToUse) {
+        if (markdownDescription || description) {
             const descriptionWrapper = document.createElement('div');
             descriptionWrapper.classList.add('pref-description');
-            descriptionWrapper.textContent = descriptionToUse;
+            if (markdownDescription) {
+                const renderedDescription = markdownit().renderInline(markdownDescription);
+                descriptionWrapper.innerHTML = DOMPurify.sanitize(renderedDescription);
+            } else if (description) {
+                descriptionWrapper.textContent = description;
+            }
             contentWrapper.appendChild(descriptionWrapper);
         }
 
